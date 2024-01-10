@@ -1,9 +1,9 @@
 #include "indexer.h"
 
 
-void Indexer::idx_words(const string&& regex,
+void Indexer::idx_words(const string&& reg,
 	const string& sentence) {
-	regex word_regex(regex);
+	regex word_regex(reg);
 
 	for (auto itr =
 		sregex_iterator(sentence.begin(), sentence.end(), word_regex);
@@ -87,7 +87,7 @@ bool Indexer::find_query(const string& ref, string& query) {
 void Indexer::parse_words(const string& raw_data) {
 	string sub_html = raw_data;
 
-	Indexer::clear_data(
+	Indexer::clr_data(
 		{
 			"<(script|style|noscript|!--)([\\w\\W]+?)</"
 			"(script|style|noscript|--)>",
@@ -99,7 +99,7 @@ void Indexer::parse_words(const string& raw_data) {
 	transform(sub_html.begin(), sub_html.end(), sub_html.begin(),
 		[](unsigned char ch) { return tolower(ch); });
 
-	Indexer::index_words(
+	Indexer::idx_words(
 		"[a-z]{3,32}",
 		sub_html);
 }

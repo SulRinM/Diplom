@@ -52,7 +52,7 @@ void parse_link(const Link& link, int depth, const Config& config) {
 			Indexer idx;
 			idx.parse_words(html);
 			idx.parse_links(html, link);
-			idx.push_data_to_db(
+			idx.push_data_db(
 				config.getConfig("db_host"),
 				config.getConfig("db_port"),
 				config.getConfig("db_name"),
@@ -109,14 +109,15 @@ int main(int argc, char** argv) {
 			t.join();
 		}
 	}
-	catch (const exception& e) {
-		cout << e.what() << endl;
-	}
+
 	catch (const pqxx::sql_error& e) {
-		cout << e.what() << endl;
+    	cout << e.what() << endl;
+	}
+	catch (const exception& e) {
+    	cout << e.what() << endl;
 	}
 	catch (...) {
-		cout << "General error" << endl;
+    	cout << "General error" << endl;
 	}
 
 	return 0;
