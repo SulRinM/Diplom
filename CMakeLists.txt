@@ -4,7 +4,7 @@ project(CppDiplomProject)
 
 set(OPENSSL_ROOT_DIR "C:\\Program Files\\OpenSSL-Win64")
 
-set(BOOST_ROOT "C:\\boost")
+set(BOOST_ROOT "C:\\Boost")
 
 set(libpqxx_DIR "C:\\libpqxx-7.8.1")
 
@@ -27,7 +27,7 @@ find_package(OpenSSL REQUIRED)
 
 add_subdirectory(Spider)
 
-add_subdirectory(http_server)
+add_subdirectory(HttpServer)
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/config.ini
 	DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/out/build/x64-Debug/Config

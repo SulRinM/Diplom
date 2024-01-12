@@ -1,10 +1,11 @@
 #include <chrono>
+#include <cstdlib>
 #include <ctime>
 #include <iostream>
 #include <string>
-#include <cstdlib>
-#include <Windows.h>
+#include <iostream>
 #include "http_connection.h"
+#include <Windows.h>
 #include "../ConfigParser/config.h"
 
 
