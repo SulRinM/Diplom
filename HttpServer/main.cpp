@@ -6,7 +6,7 @@
 #include <iostream>
 #include "http_connection.h"
 #include <Windows.h>
-//#include "../ConfigParser/config.h"
+#include "../ConfigParser/config.h"
 
 
 static void httpServer(tcp::acceptor& acceptor, tcp::socket& socket) {
@@ -24,8 +24,8 @@ int main(int argc, char** argv) {
 		SetConsoleCP(CP_UTF8);
 		SetConsoleOutputCP(CP_UTF8);
 
-		Config config("../Config/config.ini");
-
+		Config config(STR_CONFIG);
+		
 		auto const address = net::ip::make_address("127.0.0.1");
 		unsigned short port = static_cast<unsigned short>(stoi(config.getConfig("http_server_port")));
 

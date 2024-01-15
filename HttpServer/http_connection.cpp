@@ -28,7 +28,7 @@ vector<pair<string, int>> HttpConnection::getSorted(unordered_map<string, int>& 
 vector<pair<string, int>> HttpConnection::getDatafromDB(const string& searchStr) {
 	vector<pair<string, int>> res;
 	try {
-		Config config("../Config/config.ini");
+		Config config(STR_CONFIG);//config("../Config/config.ini");
 
 		string host = config.getConfig("db_host");
 		string port = config.getConfig("db_port");

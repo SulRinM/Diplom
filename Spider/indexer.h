@@ -5,6 +5,7 @@
 #include <vector>
 #include <regex>
 #include <unordered_map>
+#include <unordered_set>
 #include <cctype>
 #include <algorithm>
 #include "link.h"
