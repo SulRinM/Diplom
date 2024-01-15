@@ -5,30 +5,41 @@
 #include <vector>
 #include <regex>
 #include <unordered_map>
-#include <unordered_set>
 #include <cctype>
 #include <algorithm>
 #include "link.h"
 #include <pqxx/pqxx>
 
-using namespace std;
 
-class Indexer {
+class Indexer
+{
 public:
 	Indexer() = default;
+	
 	virtual ~Indexer() = default;
-	void parse_words(const string&);
-	void parse_links(const string&, const Link&);
-	void push_data_db(const string&, const string&, const string&, const string&, const string&, const Link&);
-	unordered_map<string, unsigned long> get_words();
-	vector<Link> get_links();
 
 private:
-	void idx_words(const string&&, const string&);
-	bool find_protocol(const string&, const Link&, ProtocolType&);
-	bool find_domain(const string&, const Link&, string&);
-	bool find_query(const string&, string&);
-	void clr_data(const vector<string>&&, string&);
-	unordered_map<string, unsigned long> words;
-	vector<Link> links;
+	void clear_data(const std::vector<std::string>&&, std::string&);
+	
+	void index_words(const std::string&&, const std::string&);
+	
+	bool find_protocol(const std::string&, const Link&, ProtocolType&);
+	
+	bool find_domain(const std::string&, const Link&, std::string&);
+	
+	bool find_query(const std::string&, std::string&);
+	
+	std::unordered_map<std::string, unsigned long> words;
+	std::vector<Link> links;
+
+public:
+	void parse_words(const std::string&);
+	
+	void parse_links(const std::string&, const Link&);
+	
+	void push_data_to_db(const std::string&, const std::string&, const std::string&, const std::string&, const std::string&, const Link&);
+	
+	std::unordered_map<std::string, unsigned long> get_words();
+	
+	std::vector<Link> get_links();
 };

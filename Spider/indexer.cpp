@@ -1,13 +1,18 @@
 #include "indexer.h"
 
+void Indexer::clear_data(const std::vector<std::string>&& regular_expressions, std::string& data) {
+	for (const auto& regex_pattern : regular_expressions) {
+		std::regex regex(regex_pattern);
+		data = std::regex_replace(data, regex, " ");
+	}
+}
 
-void Indexer::idx_words(const string&& reg, const string& sentence) {
-	regex word_regex(reg);
+void Indexer::index_words(const std::string&& regex, const std::string& sentence) {
+	std::regex word_regex(regex);
 
-	for (auto itr = sregex_iterator(sentence.begin(), sentence.end(), word_regex);
-		itr != sregex_iterator(); ++itr) {
-		string word = (*itr).str();
-		auto word_value_itr = words.find(word);
+	for (auto itr = std::sregex_iterator(sentence.begin(), sentence.end(), word_regex); itr != std::sregex_iterator(); ++itr) {
+		std::string word = (*itr).str();
+		std::unordered_map<std::string, unsigned long>::iterator word_value_itr = words.find(word);
 		if (word_value_itr == words.end())
 			words.emplace(word, 1);
 		else
@@ -15,100 +20,119 @@ void Indexer::idx_words(const string&& reg, const string& sentence) {
 	}
 }
 
-bool Indexer::find_protocol(const string& ref, const Link& link, ProtocolType& protocol) {
-	regex http_regex("http://");
-	regex https_regex("https://");
-	regex href_regex("href\\s*=\\s*['\"]?/");
-	smatch match;
+bool Indexer::find_protocol(const std::string& ref, const Link& link, ProtocolType& protocol) {
+	std::regex http_regex("http:\\s*//");
+	std::regex https_regex("https:\\s*//");
+	std::regex href_regex("href\\s*=\\s*/");
+	std::smatch match;
 
-	if (regex_search(ref, match, http_regex)) {
+	if (std::regex_search(ref, match, http_regex)) {
 		protocol = ProtocolType::HTTP;
+
 		return true;
 	}
-	else if (regex_search(ref, match, https_regex)) {
+	else if (std::regex_search(ref, match, https_regex)) {
 		protocol = ProtocolType::HTTPS;
+
 		return true;
 	}
-	else if (regex_search(ref, match, href_regex)) {
+	else if (std::regex_search(ref, match, href_regex)) {
 		protocol = link.protocol;
+
 		return true;
 	}
-	else {
+	else
 		return false;
-	}
 }
 
-bool Indexer::find_domain(const string& ref, const Link& link, string& domain) {
-	regex domain_regex("//([^/]+)/");
-	regex href_regex("href\\s*=\\s*['\"]?/");
-	smatch match;
+bool Indexer::find_domain(const std::string& ref, const Link& link, std::string& domain) {
+	std::regex domain_regex("//(.)+?[^/]/");
+	std::regex href_regex("href\\s*=\\s*/");
+	std::smatch match;
 
-	if (regex_search(ref, match, domain_regex)) {
-		domain = match[1].str();
+	if (std::regex_search(ref, match, domain_regex)) {
+		std::regex slash_regex("/");
+		std::string tmp = match[0];
+		domain = std::regex_replace(tmp, slash_regex, "");
+
 		return true;
 	}
-	else if (regex_search(ref, match, href_regex)) {
+	else if (std::regex_search(ref, match, href_regex)) {
 		domain = link.hostName;
+
 		return true;
 	}
-	else {
+	else
 		return false;
-	}
 }
 
-bool Indexer::find_query(const string& ref, string& query) {
-	regex query_regex("\\?([^#]*)");
-	smatch match;
+bool Indexer::find_query(const std::string& ref, std::string& query) {
+	std::regex domain_regex("//(.)+?[^/]/");
+	std::regex href_regex("href\\s*=\\s*/");
+	std::smatch match;
 
-	if (regex_search(ref, match, query_regex)) {
-		query = match[1].str();
-		return true;
-	}
-	else {
+	if (std::regex_search(ref, match, domain_regex) || std::regex_search(ref, match, href_regex)) {
 		query = "/";
-		return false;
+		std::string tmp = match.suffix();
+		if (!tmp.empty())
+			query.append(tmp);
+
+		return true;
 	}
+	else
+		return false;
 }
 
-void Indexer::parse_words(const string& raw_data) {
-    string sub_html = raw_data;
-    Indexer::clr_data(
-        { "<(script|style|noscript|!--)(.*?)</(script|style|noscript|--)>", 
-          "<[^<>]+>", 
-          "[^A-Za-z]" }, 
-        sub_html);
+void Indexer::parse_words(const std::string& raw_data) {
+	std::string sub_html = raw_data;
 
-    transform(sub_html.begin(), sub_html.end(), sub_html.begin(),
-        [](unsigned char ch) { return tolower(ch); });
+	Indexer::clear_data
+	(
+		{
+			"<(script|style|noscript|!--)([\\w\\W]+?)</(script|style|noscript|--)>",
+			"<([\\w\\W]*?)>",
+			"[^A-Za-z]"
+		},
+		sub_html
+	);
 
-    Indexer::idx_words("[a-z]{3,32}", sub_html);
+	std::transform(sub_html.begin(), sub_html.end(), sub_html.begin(), [](unsigned char ch) { return std::tolower(ch); });
+
+	Indexer::index_words
+	(
+		"[a-z]{3,32}",
+		sub_html
+	);
 }
 
+void Indexer::parse_links(const std::string& raw_data, const Link& parrent_link) {
+	std::string sub_html = raw_data;
 
-void Indexer::parse_links(const string& raw_data, const Link& parrent_link) {
-	string sub_html = raw_data;
-	regex a_tag_regex("<a\\b([^>]+)>(.*?)</a>");
-	unordered_set<string> stored_links;
+	std::regex a_tag_regex("<a\\b([^>]+)>(.*?)</a>");
 
-	for (auto itr = sregex_iterator(sub_html.begin(), sub_html.end(), a_tag_regex);
-		itr != sregex_iterator(); ++itr) {
-		string a_tag = (*itr).str();
+	std::unordered_map<std::string, char> stored_links;
 
-		regex href_regex("href\\s*=\\s*\"([^\"]*)\"");
-		smatch match;
-		if (regex_search(a_tag, match, href_regex)) {
-			string ref = match[1];
+	for (auto itr = std::sregex_iterator(sub_html.begin(), sub_html.end(), a_tag_regex); itr != std::sregex_iterator(); ++itr) {
+		std::string a_tag = (*itr).str();
+
+		std::regex href_regex("href.+?[^\"]\"");
+		std::smatch match;
+		if (std::regex_search(a_tag, match, href_regex)) {
+			std::string ref = match[0];
+
+			std::regex quotes_regex("\"");
+			ref = std::regex_replace(ref, quotes_regex, "");
 
 			ProtocolType protocol;
-			string domain;
-			string query;
+			std::string domain;
+			std::string query;
 
-			if (Indexer::find_protocol(ref, parrent_link, protocol) &&
-				Indexer::find_domain(ref, parrent_link, domain) &&
-				Indexer::find_query(ref, query)) {
-				string link_key = domain + query;
+			if (Indexer::find_protocol(ref, parrent_link, protocol) && Indexer::find_domain(ref, parrent_link, domain) && Indexer::find_query(ref, query)) {
+				std::string link_key = domain + query;
 
-				if (stored_links.insert(link_key).second) {
+				auto itr_check = stored_links.find(link_key);
+				if (itr_check == stored_links.end()) {
+					stored_links.insert({ link_key,'y' });
 					links.push_back({ protocol, domain, query });
 				}
 			}
@@ -116,29 +140,23 @@ void Indexer::parse_links(const string& raw_data, const Link& parrent_link) {
 	}
 }
 
-void Indexer::push_data_db(const string& host, const string& port,
-	const string& dbname,
-	const string& user, const string& pass,
-	const Link& link) {
+void Indexer::push_data_to_db(const std::string& host, const std::string& port, const std::string& dbname, const std::string& user, const std::string& pass, const Link& link) {
 	try {
-		string con_str("host=" + host +
-			" "
-			"port=" +
-			port +
-			" "
-			"dbname=" +
-			dbname +
-			" "
-			"user=" +
-			user +
-			" "
-			"password=" +
-			pass);
+		std::string con_str
+		(
+			"host=" + host + " "
+			"port=" + port + " "
+			"dbname=" + dbname + " "
+			"user=" + user + " "
+			"password=" + pass
+		);
 
 		pqxx::connection connection(con_str);
 		pqxx::work work{ connection };
 
-		work.exec("CREATE TABLE IF NOT EXISTS documents("
+		work.exec
+		(
+			"CREATE TABLE IF NOT EXISTS documents("
 			"id SERIAL PRIMARY KEY, "
 			"url VARCHAR(2500) NOT NULL UNIQUE);"
 
@@ -150,83 +168,78 @@ void Indexer::push_data_db(const string& host, const string& port,
 			"document_id INTEGER REFERENCES documents(id), "
 			"word_id INTEGER REFERENCES words(id), "
 			"CONSTRAINT pk PRIMARY KEY(document_id, word_id), "
-			"quantity INTEGER NOT NULL);");
+			"quantity INTEGER NOT NULL);"
+		);
 
-		string url_str =
-			(static_cast<int>(link.protocol) == 0 ? "http" : "https");
+		std::string url_str = (static_cast<int>(link.protocol) == 0 ? "http" : "https");
 		url_str += "://" + link.hostName + link.query;
 
-		pqxx::result link_id_res = work.exec("SELECT id FROM documents "
-			"WHERE url = '" +
-			url_str + "'");
+		pqxx::result link_id_res = work.exec
+		(
+			"SELECT id FROM documents "
+			"WHERE url = '" + url_str + "'"
+		);
 
 		if (link_id_res.size()) {
-			cout << "DB contains current link "
-				<< "\""
-				<< " ID = " << link_id_res[0][0] << endl;
+			std::cout << "DB contains current link " << "\"" << " ID = " << link_id_res[0][0] << std::endl;
 			connection.close();
 
 			return;
 		}
 		else {
-			work.exec("INSERT INTO documents(url) "
-				"VALUES('" +
-				url_str + "')");
+			work.exec
+			(
+				"INSERT INTO documents(url) "
+				"VALUES('" + url_str + "')"
+			);
 
-			cout << "Link \"" << url_str << "\" has been pushed to DB"
-				<< endl;
+			std::cout << "Link \"" << url_str << "\" has been pushed to DB" << std::endl;
 
-			for (unordered_map<string, unsigned long>::const_iterator
-				con_itr = words.cbegin();
-				con_itr != words.end(); ++con_itr) {
-				string word_str = con_itr->first;
-				string quantity = to_string(con_itr->second);
+			for (std::unordered_map<std::string, unsigned long>::const_iterator con_itr = words.cbegin(); con_itr != words.end(); ++con_itr) {
+				std::string word_str = con_itr->first;
+				std::string quantity = std::to_string(con_itr->second);
 
-				pqxx::result word_id_res = work.exec("SELECT id FROM words "
-					"WHERE word = '" +
-					word_str + "'");
+				pqxx::result word_id_res = work.exec
+				(
+					"SELECT id FROM words "
+					"WHERE word = '" + word_str + "'"
+				);
 
 				if (word_id_res.size()) {
-					cout << "DB contains current word "
-						<< "\"" << word_str << "\""
-						<< " ID = " << word_id_res[0][0] << endl;
+					std::cout << "DB contains current word " << "\"" << word_str << "\"" << " ID = " << word_id_res[0][0] << std::endl;
 				}
 				else {
-					work.exec("INSERT INTO words(word) "
-						"VALUES('" +
-						word_str + "');");
+					work.exec
+					(
+						"INSERT INTO words(word) "
+						"VALUES('" + word_str + "');"
+					);
 
-					cout << "Word "
-						<< "\"" << word_str << "\""
-						<< " has been pushed to DB" << endl;
+					std::cout << "Word " << "\"" << word_str << "\"" << " has been pushed to DB" << std::endl;
 				}
-				work.exec("INSERT INTO documents_words(document_id, word_id, quantity) "
-					"VALUES((SELECT id from documents WHERE url = '" +
-					url_str + "'), (SELECT id from words WHERE word = '" +
-					word_str + "'), " + quantity + ");");
+				work.exec
+				(
+					"INSERT INTO documents_words(document_id, word_id, quantity) "
+					"VALUES((SELECT id from documents WHERE url = '" + url_str + "'), (SELECT id from words WHERE word = '" + word_str + "'), " + quantity + ");"
+				);
 			}
 		}
+
 		work.commit();
 		connection.close();
 	}
 	catch (pqxx::sql_error& e) {
-		cout << e.what() << endl;
+		std::cout << e.what() << std::endl;
 	}
-	catch (runtime_error& e) {
-		cout << e.what() << endl;
-	}
-}
-
-void Indexer::clr_data(const vector<string>&& regular_expressions, string& data) {
-	for (const auto& regex_pattern : regular_expressions) {
-		regex regex(regex_pattern);
-		data = regex_replace(data, regex, " ");
+	catch (std::runtime_error& e) {
+		std::cout << e.what() << std::endl;
 	}
 }
 
-
-unordered_map<string, unsigned long> Indexer::get_words() {
+std::unordered_map<std::string, unsigned long> Indexer::get_words() {
 	return words;
 }
 
-vector<Link> Indexer::get_links() { return links; }
+std::vector<Link> Indexer::get_links() {
+	return links;
+}

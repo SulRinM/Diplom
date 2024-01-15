@@ -20,7 +20,6 @@ namespace http = beast::http;
 namespace net = boost::asio;
 namespace ip = boost::asio::ip;
 namespace ssl = boost::asio::ssl;
-using namespace std;
 
 using tcp = boost::asio::ip::tcp;
 
