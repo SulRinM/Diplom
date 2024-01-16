@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
 			threadPool.emplace_back(threadPoolWorker);
 		}
 
-		Config config("../Config/config.ini");
+		Config config(STR_CONFIG);
 		int searching_depth = std::stoi(config.getConfig("searching_depth"));
 
 		Link link{ ProtocolType::HTTPS, config.getConfig("domain"), config.getConfig("query") };
@@ -113,10 +113,10 @@ int main(int argc, char** argv) {
 			t.join();
 		}
 	}
-	catch (const std::exception& e) {
+	catch (const pqxx::sql_error& e) {
 		std::cout << e.what() << std::endl;
 	}
-	catch (const pqxx::sql_error& e) {
+	catch (const std::exception& e) {
 		std::cout << e.what() << std::endl;
 	}
 	catch (...) {

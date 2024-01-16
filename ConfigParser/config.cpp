@@ -1,5 +1,6 @@
 #include "config.h"
 
+const string STR_CONFIG = "../Config/config.ini";
 
 void Config::parse(const string& filename) {
 	ifstream file(filename);

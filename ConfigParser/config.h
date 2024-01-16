@@ -8,7 +8,7 @@
 
 using namespace std;
 
-const string STR_CONFIG = "../Config/config.ini";
+extern const string STR_CONFIG;
 
 class Config {
 public:
