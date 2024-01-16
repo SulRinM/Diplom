@@ -21,7 +21,7 @@ std::mutex mtx;
 std::condition_variable cv;
 
 
-void threadPoolWorker() {
+static void threadPoolWorker() {
 	std::unique_lock<std::mutex> lock(mtx);
 
 	while (!exitThreadPool || !tasks.empty()) {
@@ -38,11 +38,17 @@ void threadPoolWorker() {
 	}
 }
 
-void parse_link(const Link& link, int depth, const Config& config) {
+static void parse_link(const Link& link, int depth, const Config& config) {
 	try {
 		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
 		std::string html = get_html_content(link);
+
+		//debug 
+		if (link.query == "/index.php/How_to_Integrate_a_Symmetric_Cipher") {
+			std::cout << "debug_line" << "\n";
+		}
+
 
 		if (html.size() == 0) {
 			std::cout << "Failed to get HTML Content" << std::endl;

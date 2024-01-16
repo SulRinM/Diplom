@@ -86,15 +86,29 @@ bool Indexer::find_query(const std::string& ref, std::string& query) {
 void Indexer::parse_words(const std::string& raw_data) {
 	std::string sub_html = raw_data;
 
+	static int debug = 1;
+	if (debug) {
+		std::ofstream f("debug1.txt");
+		f << sub_html;
+		f.close();
+	}
+
 	Indexer::clear_data
 	(
 		{
-			"<(script|style|noscript|!--)([\\w\\W]+?)</(script|style|noscript|--)>",
-			"<([\\w\\W]*?)>",
+			"<^(script|style|noscript|!--)([\\w\\W]+?)<^/(script|style|noscript|--)>",
+			"<^([\\w\\W]*?)>",
 			"[^A-Za-z]"
 		},
 		sub_html
 	);
+
+	if (debug) {
+		std::ofstream f("debug2.txt");
+		f << sub_html;
+		f.close();
+	}
+
 
 	std::transform(sub_html.begin(), sub_html.end(), sub_html.begin(), [](unsigned char ch) { return std::tolower(ch); });
 
