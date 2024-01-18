@@ -83,6 +83,15 @@ bool Indexer::find_query(const std::string& ref, std::string& query) {
 		return false;
 }
 
+//// Функция для очистки текста от HTML-тегов и знаков препинания
+//static std::string clean_text(const std::string& html) {
+//	std::string text = std::regex_replace(html, std::regex("<[^>]*>"), " "); // Удаление HTML-тегов
+//	text = std::regex_replace(text, std::regex("[^a-zA-Z\\s]"), " "); // Удаление знаков препинания
+//	text = std::regex_replace(text, std::regex("\\s+"), " "); // Замена последовательностей пробелов на одиночные пробелы
+//	return text;
+//}
+
+
 void Indexer::parse_words(const std::string& raw_data) {
 	std::string sub_html = raw_data;
 
@@ -92,13 +101,13 @@ void Indexer::parse_words(const std::string& raw_data) {
 		f << sub_html;
 		f.close();
 	}
-
+	
 	Indexer::clear_data
 	(
 		{
-			"<^(script|style|noscript|!--)([\\w\\W]+?)<^/(script|style|noscript|--)>",
-			"<^([\\w\\W]*?)>",
-			"[^A-Za-z]"
+			"<(script|style|noscript|!--)([\w\W]+?)</(script|style|noscript|--)>", 
+			"<([\w\W]*?)>", 
+			"[^A-Za-z]" 
 		},
 		sub_html
 	);
@@ -109,14 +118,19 @@ void Indexer::parse_words(const std::string& raw_data) {
 		f.close();
 	}
 
-
-	std::transform(sub_html.begin(), sub_html.end(), sub_html.begin(), [](unsigned char ch) { return std::tolower(ch); });
+	std::transform(sub_html.begin(), sub_html.end(), sub_html.begin(), [](unsigned char ch) { return std::tolower(static_cast<int>(ch)); });
 
 	Indexer::index_words
 	(
 		"[a-z]{3,32}",
 		sub_html
 	);
+
+	if (debug) {
+		std::ofstream f("debug3.txt");
+		f << sub_html;
+		f.close();
+	}
 }
 
 void Indexer::parse_links(const std::string& raw_data, const Link& parrent_link) {
@@ -188,6 +202,9 @@ void Indexer::push_data_to_db(const std::string& host, const std::string& port, 
 		std::string url_str = (static_cast<int>(link.protocol) == 0 ? "http" : "https");
 		url_str += "://" + link.hostName + link.query;
 
+		std::regex getParam("\\?.*$");
+		url_str = std::regex_replace(url_str, getParam, "");
+
 		pqxx::result link_id_res = work.exec
 		(
 			"SELECT id FROM documents "
@@ -238,6 +255,15 @@ void Indexer::push_data_to_db(const std::string& host, const std::string& port, 
 				);
 			}
 		}
+
+		static int debug = 1;
+		if (debug) {
+			std::ofstream f("debug_data_base.txt");
+			f << url_str;
+			f.close();
+		}
+
+
 
 		work.commit();
 		connection.close();
